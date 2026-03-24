@@ -50,7 +50,8 @@ export default function TabLayout() {
 
       {/* Hidden screens — not shown in tab bar */}
       <Tabs.Screen name="add-policy" options={{ href: null }} />
-      <Tabs.Screen name="explore"    options={{ href: null }} />
+      <Tabs.Screen name="policy-detail" options={{ href: null }} />
+      <Tabs.Screen name="explore" options={{ title: 'Claims', tabBarIcon: ({ color }) => <IconSymbol size={24} name="doc.text.fill" color={color} /> }} />
     </Tabs>
   )
 }

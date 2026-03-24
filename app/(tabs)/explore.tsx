@@ -1,112 +1,124 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { supabase } from '@/lib/supabase';
+import { Colors, FontSize, FontWeight, Radius, Shadow, Spacing } from '@/constants/theme';
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
+const STATUS_COLOR: Record<string, string> = {
+  open: '#1AA6F1',
+  submitted: '#F59E0B',
+  in_review: '#8B5CF6',
+  resolved: '#10B981',
+  rejected: '#EF4444',
+};
 
-export default function TabTwoScreen() {
+const STATUS_LABEL: Record<string, string> = {
+  open: 'Open',
+  submitted: 'Submitted',
+  in_review: 'In Review',
+  resolved: 'Resolved',
+  rejected: 'Rejected',
+};
+
+export default function ClaimsScreen() {
+  const [claims, setClaims] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => { fetchClaims(); }, []);
+
+  async function fetchClaims() {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('claims')
+      .select('*, policies(insurer, policy_type)')
+      .order('created_at', { ascending: false });
+    if (!error && data) setClaims(data);
+    setLoading(false);
+  }
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchClaims();
+    setRefreshing(false);
+  }, []);
+
+  function formatDate(d: string) {
+    if (!d) return '-';
+    return new Date(d).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  if (loading) return (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={Colors.accent} />
+    </View>
+  );
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.heading}>Claims</Text>
+        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(tabs)/add-claim')}>
+          <Text style={styles.addBtnText}>+ New</Text>
+        </TouchableOpacity>
+      </View>
+
+      {claims.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyEmoji}>📋</Text>
+          <Text style={styles.emptyTitle}>No claims yet</Text>
+          <Text style={styles.emptySub}>Tap + New to log your first claim.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={claims}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.accent} />}
+          renderItem={({ item }) => (
+            <Pressable style={styles.card}>
+              <View style={styles.cardTop}>
+                <View>
+                  <Text style={styles.insurer}>{item.policies?.insurer ?? 'Unknown Insurer'}</Text>
+                  <Text style={styles.ref}>Ref: {item.reference ?? 'N/A'}</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: STATUS_COLOR[item.status] ?? '#888' }]}>
+                  <Text style={styles.badgeText}>{STATUS_LABEL[item.status] ?? item.status}</Text>
+                </View>
+              </View>
+              <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+              <View style={styles.cardBottom}>
+                <Text style={styles.meta}>📅 {formatDate(item.incident_date)}</Text>
+                {item.amount ? <Text style={styles.meta}>💰 R {parseFloat(item.amount).toFixed(2)}</Text> : null}
+              </View>
+            </Pressable>
+          )}
         />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts?.sans,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+      )}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg },
+  heading: { fontSize: FontSize.xxl, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  addBtn: { backgroundColor: Colors.accent, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: Radius.md },
+  addBtnText: { color: '#fff', fontSize: FontSize.sm, fontWeight: FontWeight.bold },
+  list: { padding: Spacing.lg, paddingTop: 0 },
+  card: { backgroundColor: Colors.surface, borderRadius: Radius.lg, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadow.card },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.sm },
+  insurer: { fontSize: FontSize.base, fontWeight: FontWeight.bold, color: Colors.textPrimary },
+  ref: { fontSize: FontSize.sm, color: Colors.textSecondary, marginTop: 2 },
+  badge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: Radius.full },
+  badgeText: { fontSize: FontSize.xs, fontWeight: FontWeight.bold, color: '#fff' },
+  description: { fontSize: FontSize.sm, color: Colors.textSecondary, marginBottom: Spacing.sm },
+  cardBottom: { flexDirection: 'row', gap: Spacing.md },
+  meta: { fontSize: FontSize.sm, color: Colors.textSecondary },
+  empty: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xl },
+  emptyEmoji: { fontSize: 48, marginBottom: Spacing.md },
+  emptyTitle: { fontSize: FontSize.lg, fontWeight: FontWeight.bold, color: Colors.textPrimary, marginBottom: Spacing.sm },
+  emptySub: { fontSize: FontSize.base, color: Colors.textSecondary, textAlign: 'center' },
 });
