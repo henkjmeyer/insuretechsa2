@@ -226,7 +226,7 @@ function PolicyCard({ policy }: { policy: Policy }) {
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      onPress={() => {/* navigate to detail in future step */}}
+      onPress={() => router.push({ pathname: '/(tabs)/policy-detail', params: { id: policy.id } })}
     >
       {/* Left icon */}
       <View style={[styles.typeIcon, { backgroundColor: STATUS_BG[status] }]}>
