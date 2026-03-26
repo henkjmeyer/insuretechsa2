@@ -101,7 +101,7 @@ export default function DashboardScreen() {
         .from('claims')
         .select('id', { count: 'exact' })
         .eq('user_id', user.id)
-        .eq('status', 'pending'),
+       .neq('status', 'resolved'),
 
       supabase
         .from('alerts')

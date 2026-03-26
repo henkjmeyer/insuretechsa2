@@ -1,11 +1,11 @@
+import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { supabase } from '@/lib/supabase';
-import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 
-const STATUS_OPTIONS = ['open', 'submitted', 'in_review', 'resolved', 'rejected'];
+const STATUS_OPTIONS = ['pending', 'submitted', 'in_review', 'resolved', 'rejected'];
 
 export default function AddClaimScreen() {
   const router = useRouter();
@@ -13,7 +13,7 @@ export default function AddClaimScreen() {
   const [reference, setReference] = useState('');
   const [incidentDate, setIncidentDate] = useState('');
   const [amount, setAmount] = useState('');
-  const [status, setStatus] = useState('open');
+ const [status, setStatus] = useState('pending');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
